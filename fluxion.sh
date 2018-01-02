@@ -29,22 +29,22 @@ declare -r FLUXIONRevision=11
 # =================== < Super User Check > =================== #
 # ============================================================ #
 if [ $EUID -ne 0 ]
-  then echo -e "${CRed}You don't have admin privilegies, execute the script as root.$CClr"; exit 1
+  then echo -e "Aborted, please execute the script as root."; exit 1
 fi
 
 # ============================================================ #
 # ===================== < XTerm Checks > ===================== #
 # ============================================================ #
 if [ ! "${DISPLAY:-}" ] # Assure display is available.
-  then echo -e "${CRed}The script should be exected inside a X (graphical) session.$CClr"; exit 2
+  then echo -e "Aborted, X (graphical) session unavailable."; exit 2
 fi
 
 if ! hash xdpyinfo 2>/dev/null # Assure display probe possible.
-  then echo -e "${CRed}xdpyinfo not installed, please install the relevant package for your distribution.$CClr"; exit 3
+  then echo -e "Aborted, xdpyinfo is unavailable."; exit 3
 fi
 
 if ! xdpyinfo &>/dev/null # Assure display info is available.
-  then echo -e "${CRed}The script failed to initialize an xterm test session.$CClr"; exit 3
+  then echo -e "Aborted, xterm test session failed."; exit 3
 fi
 
 # ============================================================ #
@@ -52,14 +52,14 @@ fi
 # ============================================================ #
 getopt --test > /dev/null # Assure enhanced getopt (returns 4).
 if [ $? -ne 4 ]
-  then echo "Missing enhanced getopt, can't parse parameters."; exit 4
+  then echo "Aborted, enhanced getopt isn't available."; exit 4
 fi
 
 # ============================================================ #
 # =============== < Working Directory Check > ================ #
 # ============================================================ #
 if ! mkdir -p "$FLUXIONWorkspacePath" &> /dev/null
-  then echo "Can't generate a workspace directory, aborting."; exit 5
+  then echo "Aborted, can't generate a workspace directory."; exit 5
 fi
 
 
@@ -123,7 +123,9 @@ else
 fi
 
 
-################################# < Library Includes > #################################
+# ============================================================ #
+# =================== < Library Includes > =================== #
+# ============================================================ #
 source lib/installer/InstallerUtils.sh
 source lib/InterfaceUtils.sh
 source lib/SandboxUtils.sh
@@ -132,11 +134,17 @@ source lib/ColorUtils.sh
 source lib/IOUtils.sh
 source lib/HashUtils.sh
 
-################################ < FLUXION Parameters > ################################
+
+# ============================================================ #
+# ================ < Configurable Variables > ================ #
+# ============================================================ #
 FLUXIONPrompt="$CRed[${CSBlu}fluxion$CSYel@$CSWht$HOSTNAME$CClr$CRed]-[$CSYel~$CClr$CRed]$CClr "
 FLUXIONVLine="$CRed[$CSYel*$CClr$CRed]$CClr"
 
-################################ < Library Parameters > ################################
+
+# ============================================================ #
+# ================== < Library Parameters > ================== #
+# ============================================================ #
 InterfaceUtilsOutputDevice="$FLUXIONOutputDevice"
 
 SandboxWorkspacePath="$FLUXIONWorkspacePath"
@@ -153,6 +161,13 @@ IOUtilsQueryMark="$FLUXIONVLine"
 IOUtilsPrompt="$FLUXIONPrompt"
 
 HashOutputDevice="$FLUXIONOutputDevice"
+
+
+# ============================================================ #
+# =================== < Default Language > =================== #
+# ============================================================ #
+# Set by default in case fluxion is aborted before setting one.
+source "$FLUXIONPath/language/en.sh"
 
 
 # ============================================================ #
