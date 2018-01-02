@@ -1,30 +1,127 @@
 #!/bin/bash
 
-################################ < FLUXION Parameters > ################################
-# NOTE: The FLUXIONPath constant will not be populated correctly if the script is called
-# directly via a symlink. Symlinks in the path to the script should work completely fine.
-declare -r FLUXIONPath="$(cd "$(dirname "$0")" ;pwd -P
-)"
+# ============================================================ #
+# ================== < FLUXION Parameters > ================== #
+# ============================================================ #
+# Warning: The FLUXIONPath constant will be incorrectly set when
+# called directly via a system link. System links in the path to
+# the script, however, will be loaded correctly.
 
+# Path to directory containing the FLUXION executable script.
+declare -r FLUXIONPath=$(cd "$(dirname "$0")"; pwd -P)
+
+# Path to the temp. directory available to FLUXION & subscripts.
 declare -r FLUXIONWorkspacePath="/tmp/fluxspace"
-declare -r FLUXIONHashPath="$FLUXIONPath/attacks/Handshake Snooper/handshakes"
-declare -r FLUXIONScanDB="dump"
 
+# Path to FLUXION's preferences file, to be loaded afterward.
+declare -r FLUXIONPreferencesFile="$FLUXIONPath/preferences.sh"
+
+# Constants denoting the reference noise floor & ceiling levels.
+# These are used by the the wireless network scanner visualizer.
 declare -r FLUXIONNoiseFloor=-90
 declare -r FLUXIONNoiseCeiling=-60
 
 declare -r FLUXIONVersion=3
 declare -r FLUXIONRevision=11
 
-declare -r FLUXIONDebug=${FLUXIONDebug:+1}
-declare -r FLUXIONWIKillProcesses=${FLUXIONWIKillProcesses:+1}
-declare -r FLUXIONWIReloadDriver=${FLUXIONWIReloadDriver:+1}
+
+# ============================================================ #
+# =================== < Super User Check > =================== #
+# ============================================================ #
+if [ $EUID -ne 0 ]
+  then echo -e "${CRed}You don't have admin privilegies, execute the script as root.$CClr"; exit 1
+fi
+
+# ============================================================ #
+# ===================== < XTerm Checks > ===================== #
+# ============================================================ #
+if [ ! "${DISPLAY:-}" ] # Assure display is available.
+  then echo -e "${CRed}The script should be exected inside a X (graphical) session.$CClr"; exit 2
+fi
+
+if ! hash xdpyinfo 2>/dev/null # Assure display probe possible.
+  then echo -e "${CRed}xdpyinfo not installed, please install the relevant package for your distribution.$CClr"; exit 3
+fi
+
+if ! xdpyinfo &>/dev/null # Assure display info is available.
+  then echo -e "${CRed}The script failed to initialize an xterm test session.$CClr"; exit 3
+fi
+
+# ============================================================ #
+# ================ < Parameter Parser Check > ================ #
+# ============================================================ #
+getopt --test > /dev/null # Assure enhanced getopt (returns 4).
+if [ $? -ne 4 ]
+  then echo "Missing enhanced getopt, can't parse parameters."; exit 4
+fi
+
+# ============================================================ #
+# =============== < Working Directory Check > ================ #
+# ============================================================ #
+if ! mkdir -p "$FLUXIONWorkspacePath" &> /dev/null
+  then echo "Can't generate a workspace directory, aborting."; exit 5
+fi
+
+
+# ============================================================ #
+# =================== < Argument Loading > =================== #
+# ============================================================ #
+if ! FLUXIONCLIArguments=$(getopt --options="vdkrl:a:" --longoptions="debug,version,killer,reloader,language:,attack:" --name="FLUXION V$FLUXIONVersion.$FLUXIONRevision" -- "$@")
+  then echo -e "${CRed}Aborting$CClr, parameter error..."; exit 5
+fi
+
+eval set -- "$FLUXIONCLIArguments" # Set arguments to the environment.
+
+while [ "$1" != "--" ]; do
+  case "$1" in
+    -v|--version) echo "FLUXION V$FLUXIONVersion.$FLUXIONRevision"; exit;;
+    -d|--debug) declare -r FLUXIONDebug=1;;
+    -k|--killer) declare -r FLUXIONWIKillProcesses=1;;
+    -r|--reloader) declare -r FLUXIONWIReloadDriver=1;;
+    -l|--language) FLUXIONLanguage=$2; shift;;
+    -a|--attack) FLUXIONAttack=$2; shift;;
+  esac
+  shift # Shift new parameters
+done
+
+shift # Remove "--" to prepare for attacks to read parameters.
+
+
+# ============================================================ #
+# =================== < User Preferences > =================== #
+# ============================================================ #
+# Load user-defined preferences if there's an executable script.
+if [ -x "$FLUXIONPreferencesFile" ]
+  then source "$FLUXIONPreferencesFile"
+fi
+
+
+# ============================================================ #
+# ================ < Configurable Constants > ================ #
+# ============================================================ #
+if [ "$FLUXIONDebug" != "1" ]
+  then declare -r FLUXIONDebug=${FLUXIONDebug:+1}
+fi
+
+if [ "$FLUXIONWIKillProcesses" != "1" ]
+  then declare -r FLUXIONWIKillProcesses=${FLUXIONWIKillProcesses:+1}
+fi
+
+if [ "$FLUXIONWIReloadDriver" != "1" ]
+  then declare -r FLUXIONWIReloadDriver=${FLUXIONWIReloadDriver:+1}
+fi
+
 declare -r FLUXIONAuto=${FLUXIONAuto:+1}
 
 # FLUXIONDebug [Normal Mode "" / Developer Mode 1]
-declare -r FLUXIONOutputDevice=$([ $FLUXIONDebug ] && echo "/dev/stdout" || echo "/dev/null")
+if [ $FLUXIONDebug ]; then
+  declare -r FLUXIONOutputDevice="/dev/stdout"
+  declare -r FLUXIONHoldXterm="-hold"
+else
+  declare -r FLUXIONOutputDevice="/dev/null"
+  declare -r FLUXIONHoldXterm=""
+fi
 
-declare -r FLUXIONHoldXterm=$([ $FLUXIONDebug ] && echo "-hold" || echo "")
 
 ################################# < Library Includes > #################################
 source lib/installer/InstallerUtils.sh
@@ -57,35 +154,10 @@ IOUtilsPrompt="$FLUXIONPrompt"
 
 HashOutputDevice="$FLUXIONOutputDevice"
 
-################################# < Super User Check > #################################
-if [ $EUID -ne 0 ]; then
-  echo -e "${CRed}You don't have admin privilegies, execute the script as root.$CClr"
-  exit 1
-fi
 
-################################### < XTerm Checks > ###################################
-if [ ! "${DISPLAY:-}" ]; then
-  echo -e "${CRed}The script should be exected inside a X (graphical) session.$CClr"
-  exit 2
-fi
-
-if ! hash xdpyinfo 2>/dev/null; then
-  echo -e "${CRed}xdpyinfo not installed, please install the relevant package for your distribution.$CClr"
-  exit 3
-fi
-
-if ! xdpyinfo &>/dev/null; then
-  echo -e "${CRed}The script failed to initialize an xterm test session.$CClr"
-  exit 3
-fi
-
-################################# < Default Language > #################################
-source language/en.sh
-
-################################# < User Preferences > #################################
-if [ -x "$FLUXIONPath/preferences.sh" ]; then source "$FLUXIONPath/preferences.sh"; fi
-
-########################################################################################
+# ============================================================ #
+# =============== < Load Handler Subroutines > =============== #
+# ============================================================ #
 function fluxion_exitmode() {
   if [ $FLUXIONDebug ]; then return 1; fi
 
@@ -97,8 +169,8 @@ function fluxion_exitmode() {
   local processes
   readarray processes < <(ps -A)
 
-  # Currently, fluxion is only responsible for killing airodump-ng, because
-  # fluxion explicitly it uses it to scan for candidate target access points.
+  # Currently, fluxion is only responsible for killing airodump-ng, since
+  # fluxion explicitly uses it to scan for candidate target access points.
   # NOTICE: Processes started by subscripts, such as an attack script,
   # MUST BE TERMINATED BY THAT SAME SCRIPT in the subscript's abort handler.
   local targets=("airodump-ng")
@@ -176,11 +248,11 @@ function fluxion_conditional_bail() {
 
 # ERROR Report only in Developer Mode
 function fluxion_error_report() {
-  echo "Error on line $1"
+  echo "Exception caught @ line #$1"
 }
 
 if [ "$FLUXIONDebug" ]; then
-  trap 'fluxion_error_report $LINENUM' ERR
+  trap 'fluxion_error_report $LINENO' ERR
 fi
 
 function fluxion_handle_abort_attack() {
@@ -206,6 +278,10 @@ function fluxion_handle_exit() {
 # to execute cleanup and reset commands.
 trap fluxion_handle_exit SIGINT SIGHUP
 
+
+# ============================================================ #
+# ================= < Load All Subroutines > ================= #
+# ============================================================ #
 function fluxion_header() {
   format_apply_autosize "[%*s]\n"
   local verticalBorder=$FormatApplyAutosize
@@ -224,13 +300,9 @@ function fluxion_header() {
   echo
 }
 
-# Create working directory
-if [ ! -d "$FLUXIONWorkspacePath" ]; then
-  mkdir -p "$FLUXIONWorkspacePath" &>$FLUXIONOutputDevice
-fi
+function fluxion_start() {
+  if [ "$FLUXIONDebug" ]; then return 1; fi
 
-####################################### < Start > ######################################
-if [ ! $FLUXIONDebug ]; then
   FLUXIONBanner=()
 
   format_center_literals " ⌠▓▒▓▒   ⌠▓╗     ⌠█┐ ┌█   ┌▓\  /▓┐   ⌠▓╖   ⌠◙▒▓▒◙   ⌠█\  ☒┐"
@@ -248,16 +320,16 @@ if [ ! $FLUXIONDebug ]; then
 
   clear
 
-  if [ "$FLUXIONAuto" ]; then echo -e "$CBlu"
-  else echo -e "$CRed"
+  if [ "$FLUXIONAuto" ]
+    then echo -e "$CBlu"
+    else echo -e "$CRed"
   fi
 
-  for line in "${FLUXIONBanner[@]}"; do
-    echo "$line"
-    sleep 0.05
+  for line in "${FLUXIONBanner[@]}"
+    do echo "$line"; sleep 0.05
   done
-  #echo "${FLUXIONBanner[@]}"
-  echo
+
+  echo # This echo is for spacing
 
   sleep 0.1
   format_center_literals "${CGrn}Site: ${CRed}https://github.com/FluxionNetwork/fluxion$CClr"
@@ -268,17 +340,19 @@ if [ ! $FLUXIONDebug ]; then
   echo -e "$FormatCenterLiterals"
 
   sleep 0.1
-  if installer_utils_check_update "https://raw.githubusercontent.com/FluxionNetwork/fluxion/master/fluxion.sh" "FLUXIONVersion=" "FLUXIONRevision=" $FLUXIONVersion $FLUXIONRevision; then installer_utils_run_update "https://github.com/FluxionNetwork/fluxion/archive/master.zip" "FLUXION-V$FLUXIONVersion.$FLUXIONRevision" "$(dirname "$FLUXIONPath")"
+  if installer_utils_check_update "https://raw.githubusercontent.com/FluxionNetwork/fluxion/master/fluxion.sh" "FLUXIONVersion=" "FLUXIONRevision=" $FLUXIONVersion $FLUXIONRevision
+    then installer_utils_run_update "https://github.com/FluxionNetwork/fluxion/archive/master.zip" "FLUXION-V$FLUXIONVersion.$FLUXIONRevision" "$(dirname "$FLUXIONPath")"
   fi
 
-  echo
+  echo # This echo is for spacing
 
   FLUXIONCLIToolsRequired=("aircrack-ng" "python2:python2.7|python2" "bc" "awk:awk|gawk|mawk" "curl" "dhcpd:isc-dhcp-server|dhcp" "7zr:p7zip" "hostapd" "lighttpd" "iwconfig:wireless-tools" "macchanger" "mdk3" "nmap" "openssl" "php-cgi" "pyrit" "xterm" "rfkill" "unzip" "route:net-tools" "fuser:psmisc" "killall:psmisc")
   FLUXIONCLIToolsMissing=()
 
-  while ! installer_utils_check_dependencies FLUXIONCLIToolsRequired[@]; do installer_utils_run_dependencies InstallerUtilsCheckDependencies[@]
+  while ! installer_utils_check_dependencies FLUXIONCLIToolsRequired[@]
+    do installer_utils_run_dependencies InstallerUtilsCheckDependencies[@]
   done
-fi
+}
 
 #################################### < Resolution > ####################################
 function fluxion_set_resolution() { # Windows + Resolution
@@ -319,46 +393,54 @@ function fluxion_set_resolution() { # Windows + Resolution
   TOPRIGHTBIG="-geometry $NEW_SCREEN_SIZE_BIG_Xx$NEW_SCREEN_SIZE_BIG_Y-0+0"
 }
 
-##################################### < Language > #####################################
+
+# ============================================================ #
+# ======================= < Language > ======================= #
+# ============================================================ #
 function fluxion_set_language() {
-  if [ "$FLUXIONAuto" ]; then
-    FLUXIONLanguage="en"
-  else
-    # Get all languages available.
-    local languageCodes
-    readarray -t languageCodes < <(ls -1 language | sed -E 's/\.sh//')
+  if [ ! "$FLUXIONLanguage" ]; then
+    if [ "$FLUXIONAuto" ]; then
+      FLUXIONLanguage="en"
+    else
+      # Get all languages available.
+      local languageCodes
+      readarray -t languageCodes < <(ls -1 language | sed -E 's/\.sh//')
 
-    local languages
-    readarray -t languages < <(head -n 3 language/*.sh | grep -E "^# native: " | sed -E 's/# \w+: //')
+      local languages
+      readarray -t languages < <(head -n 3 language/*.sh | grep -E "^# native: " | sed -E 's/# \w+: //')
 
-    io_query_format_fields "$FLUXIONVLine Select your language" "\t$CRed[$CSYel%d$CClr$CRed]$CClr %s / %s\n" languageCodes[@] languages[@]
+      io_query_format_fields "$FLUXIONVLine Select your language" "\t$CRed[$CSYel%d$CClr$CRed]$CClr %s / %s\n" languageCodes[@] languages[@]
 
-    FLUXIONLanguage=${IOQueryFormatFields[0]}
+      FLUXIONLanguage=${IOQueryFormatFields[0]}
 
-    echo # Leave this spacer.
+      echo # Leave this spacer.
 
-    # Check if all language files are present for the selected language.
-    find -type d -name language | while read language_dir; do
-      if [ ! -e "$language_dir/${FLUXIONLanguage}.sh" ]; then
-        echo -e "$FLUXIONVLine ${CYel}Warning${CClr}, missing language file:"
-        echo -e "\t$language_dir/${FLUXIONLanguage}.sh"
+      # Check if all language files are present for the selected language.
+      find -type d -name language | while read language_dir; do
+        if [ ! -e "$language_dir/${FLUXIONLanguage}.sh" ]; then
+          echo -e "$FLUXIONVLine ${CYel}Warning${CClr}, missing language file:"
+          echo -e "\t$language_dir/${FLUXIONLanguage}.sh"
+          return 1
+        fi
+      done
+
+      # If a file is missing, fall back to english.
+      if [ $? -eq 1 ]; then
+        echo -e "\n\n$FLUXIONVLine Falling back to English..."
+        sleep 5
+        FLUXIONLanguage="en"
         return 1
       fi
-    done
-
-    # If a file is missing, fall back to english.
-    if [ $? -eq 1 ]; then
-      echo -e "\n\n$FLUXIONVLine Falling back to English..."
-      sleep 5
-      FLUXIONLanguage="en"
-      return 1
     fi
-
-    source "$FLUXIONPath/language/$FLUXIONLanguage.sh"
   fi
+
+  source "$FLUXIONPath/language/$FLUXIONLanguage.sh"
 }
 
-#################################### < Interfaces > ####################################
+
+# ============================================================ #
+# ====================== < Interfaces > ====================== #
+# ============================================================ #
 function fluxion_unset_interface() {
   # Unblock interfaces to make them available.
   echo -e "$FLUXIONVLine $FLUXIONUnblockingWINotice"
@@ -972,10 +1054,17 @@ function fluxion_set_attack() {
   fi
 
   FLUXIONAttack=${IOQueryFormatFields[0]}
+}
+
+function fluxion_prep_attack() {
+  local -r path="$FLUXIONPath/attacks/$FLUXIONAttack"
+
+  if [ ! -x "$path/attack.sh" ]; then return 1; fi
+  if [ ! -x "$path/language/$FLUXIONLanguage.sh" ]; then return 2; fi
 
   # Load attack and its corresponding language file.
-  source "attacks/$FLUXIONAttack/language/$FLUXIONLanguage.sh"
-  source "attacks/$FLUXIONAttack/attack.sh"
+  source "$path/language/$FLUXIONLanguage.sh"
+  source "$path/attack.sh"
 
   prep_attack
 
@@ -1000,12 +1089,17 @@ function fluxion_run_attack() {
 
   stop_attack
 
-  if [ "$choice" = "$FLUXIONGeneralExitOption" ]; then fluxion_handle_exit; fi
+  if [ "$choice" = "$FLUXIONGeneralExitOption" ]
+    then fluxion_handle_exit
+  fi
 
   fluxion_unset_attack
 }
 
+
 ################################### < FLUXION Loop > ###################################
+fluxion_start
+
 fluxion_set_resolution
 fluxion_set_language
 
@@ -1017,6 +1111,8 @@ while true; do
   fluxion_set_target_ap
   if [ $? -ne 0 ]; then continue; fi
   fluxion_set_attack
+  if [ $? -ne 0 ]; then continue; fi
+  fluxion_prep_attack
   if [ $? -ne 0 ]; then continue; fi
   fluxion_run_attack
   if [ $? -ne 0 ]; then continue; fi
